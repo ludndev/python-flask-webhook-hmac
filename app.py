@@ -30,19 +30,20 @@ def webhook():
     if not received_signature:
         abort(make_response(jsonify(message="Signature header missing"), 400))
 
-    # check HMAC signature
-    if not verify_hmac_signature(payload, received_signature):
-        abort(make_response(jsonify(message="Invalid signature"), 400))
-    
     try:
         data = json.loads(payload)
+    except json.JSONDecodeError:
+        abort(make_response(jsonify(message="Invalid JSON payload"), 400))
 
+    # check the HMAC signature after successfully parsing the JSON
+    if not verify_hmac_signature(payload, received_signature):
+        abort(make_response(jsonify(message="Invalid signature"), 400))
+
+    if APP_DEBUG:
         print("received_signature", received_signature)
         print("data", data)
 
-        return make_response(jsonify(message="Webhook received and verified"), 200)
-    except json.JSONDecodeError:
-        abort(make_response(jsonify(message="Invalid JSON payload"), 400))
+    return make_response(jsonify(message="Webhook received and verified"), 200)
 
 if __name__ == "__main__":
     app.run(port=APP_PORT, debug=APP_DEBUG)
